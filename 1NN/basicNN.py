@@ -34,7 +34,7 @@ class BasicNN:
         if len(dataList) != len(labelsList):
             raise NameError('len(dataList) not equal to len(labelsList)')
 
-        if not isinstance(numHL, int):
+        if not isinstance(HLSize, int):
             raise NameError('NumHL should be int')
 
         #  calculate the number of labels
@@ -51,7 +51,7 @@ class BasicNN:
 
 
         for i in range(maxIter):
-
+            pass
 
 
 #  work part
