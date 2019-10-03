@@ -1,2 +1,5 @@
 project start on 2019-10-2
 better finish before the end of October holiday
+
+(input)-[active function, weight]->(hiddenLayer)-[active function, weight]->(output)
+        [       IH(i, j)        ]                [        HO(i, j)       ]
