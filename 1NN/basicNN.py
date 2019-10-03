@@ -3,6 +3,7 @@
 import numpy as np
 from math import exp
 
+
 #  basic neural network
 #  which means only one hidden layer available
 #  DNN will be finished later
@@ -30,7 +31,7 @@ class Predictor:
 # HLSize means number of hidden layers. -1 allow computer to make a decision itself
 
 class BasicNN:
-    def __init__(self, dataList, labelsList, learnRate=0.8, errorRate=0.05, maxIter=20, HLSize=-1):
+    def __init__(self, dataList, labelsList, learnRateIH=0.8, learnRateHO=0.8, errorRate=0.05, maxIter=20, HLSize=-1):
         #  type check
         if not isinstance(dataList, list):
             raise NameError('DataList should be list')
@@ -54,7 +55,7 @@ class BasicNN:
         for i in range(len(labelsList)):
             self.labelsMat[i, self.labelNames.index(labelsList[i])] = 1
 
-        self.learnRate = learnRate
+        self.learnRate = (learnRateIH, learnRateHO)
         self.errorRate = errorRate
         self.maxIter = maxIter
 
@@ -65,10 +66,13 @@ class BasicNN:
 
         # init IH(input-hiddenLayer) weight matrix and HO(hiddenLayer-output) weight matrix
         # IH:(I*H); HO(H*O)
+        self.IHAwait = np.random.random((1, self.HLSize))
+        self.HOAwait = np.random.random((1, self.outputSize))
         self.IH = np.random.random((self.inputSize, self.HLSize))
         self.HO = np.random.random((self.HLSize, self.outputSize))
 
-        self.yCaret = np.zeros((1, self.outputSize))
+        self.b = np.zeros((self.numData, self.HLSize))
+        self.yCaret = np.zeros((self.numData, self.outputSize))
 
     #  train should be call after init
     #  since i wanna return a small size predictor
@@ -79,7 +83,13 @@ class BasicNN:
                 break
 
             for j in range(self.numData):
-                pass
+                #  g [size:(1, self.outputSize)] and e [size(1, self.HLSize)] should be array
+                g = self.yCaret[j, :].getA()[0] * (np.ones((1, self.outputSize))[0] - self.yCaret[j, :].getA()[0]) * \
+                    (self.labelsMat[j, :].getA()[0] - self.yCaret[j, :].getA()[0])
+                e = self.b[j, :].getA()[0] * (np.ones((1, self.HLSize))[0] - self.b[j, :].getA()[0]) * \
+                    ((self.HO[j, :] * np.mat(g).T).tolist()[0][0])
+
+                self.HO = self.HO + self.errorRate[1] * g * b[]
 
     def calculateErrorRate(self):
         #  calculate the error rate
@@ -88,15 +98,18 @@ class BasicNN:
         errorCounter = 0
 
         for i in range(self.numData):
-            tempMatrix = np.zeros(1, self.HLSize)
+
             #  get the output of j-th neuron in hidden layer(after active function)
             for j in range(self.HLSize):
-                tempMatrix[0, j] = Sigmoid((self.dataMat[i, :] * self.IH[:, j].T).tolist()[0])
-            tempOutputMatrix = np.zeros(1, self.outputSize)
+                self.b[i, j] = Sigmoid((self.dataMat[i, :] * self.IH[:, j].T).tolist()[0][0]-self.IHAwait[0, j])
+
             #  get the output of j-th neuron in output(after active function)
             for j in range(self.outputSize):
-                tempOutputMatrix[0, j] = Sigmoid((tempMatrix * self.HO[:, j].T).tolist[0])
-            temp = tempOutputMatrix - self.labelsMat[i, :]
-            errorCounter += (temp * temp.T).tolist()[0]
+                self.yCaret[i, j] = Sigmoid((self.b[i, :] * self.HO[:, j].T).tolist[0][0]-self.HOAwait[0, j])
+
+            temp = self.yCaret[i, :] - self.labelsMat[i, :]
+            errorCounter += (temp * temp.T).tolist()[0][0]
+
         return errorCounter / self.numData  # is it right?
+
 #  work part
