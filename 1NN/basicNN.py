@@ -3,7 +3,6 @@
 import numpy as np
 from math import exp
 
-
 #  basic neural network
 #  which means only one hidden layer available
 #  DNN will be finished later
