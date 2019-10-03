@@ -45,7 +45,7 @@ class BasicNN:
         # I m not sure whether this output size is suitable
         self.outputSize = len(set(labelsList))
 
-        self.HLSize =
+        self.HLSize = (self.inputSize * self.outputSize)**0.5 if HLSize == -1 else HLSize
 
         dataMat = np.mat(dataList)
 
