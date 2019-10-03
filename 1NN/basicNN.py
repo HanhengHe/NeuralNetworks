@@ -91,6 +91,7 @@ class BasicNN:
 
                 self.HO = self.HO + self.errorRate[1] * g * b[]
 
+
     def calculateErrorRate(self):
         #  calculate the error rate
         #  base on matrix IH and HO
