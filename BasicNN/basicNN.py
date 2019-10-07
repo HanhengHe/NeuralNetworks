@@ -16,13 +16,18 @@ def Sigmoid(X):
 
 # low memory require Predictor
 class Predictor:
-    def __init__(self, HLSize, outputSize, IH, IHThreshold, HO, HOThreshold):
+    def __init__(self, labelsName, HLSize, outputSize, IH, IHThreshold, HO, HOThreshold):
+        self.labelsName = labelsName
         self.HLSize = HLSize
         self.outputSize = outputSize
         self.IH = IH
         self.IHThreshold = IHThreshold
         self.HO = HO
         self.HOThreshold = HOThreshold
+
+        self.labelsMat = np.mat(np.zeros((self.outputSize, self.outputSize)))
+        for i in range(self.outputSize):
+            self.labelsMat[i, self.outputSize-1-i] = 1
 
     def predict(self, X):
         #  type check
@@ -32,16 +37,21 @@ class Predictor:
         #  change type
         X = np.mat(X)
 
-        b = np.zeros((1, self.HLSize))
+        b = np.mat(np.zeros((1, self.HLSize)))
         yCaret = np.zeros((1, self.outputSize))
 
         for j in range(self.HLSize):
-            b[0, j] = Sigmoid((X * self.IH[:, j].T).tolist()[0][0] - self.IHThreshold[0, j])
+            b[0, j] = Sigmoid(((X * self.IH[:, j]) - self.IHThreshold[0, j]).tolist()[0][0])
 
         for j in range(self.outputSize):
-            yCaret[0, j] = Sigmoid((b[0, :] * self.HO[:, j].T).tolist[0][0] - self.HOThreshold[0, j])
+            yCaret[0, j] = Sigmoid(((b[0, :] * self.HO[:, j]) - self.HOThreshold[0, j]).tolist()[0][0])
 
-        return yCaret
+        temp = []
+
+        for i in range(self.outputSize):
+            temp.append((np.abs(yCaret - self.labelsMat[i, :])).tolist()[0])
+
+        return self.labelsName[temp.index(min(temp))]
 
 
 # both dataList and labelsList should be list
@@ -72,7 +82,7 @@ class BasicNN:
         # I'm not sure whether this output size is suitable
         self.labelNames = list(set(labelsList))  # for remember the meanings of transformed labels
         self.outputSize = len(self.labelNames)
-        self.labelsMat = np.zeros(self.numData, self.outputSize)
+        self.labelsMat = np.mat(np.zeros((self.numData, self.outputSize)))
 
         for i in range(len(labelsList)):
             self.labelsMat[i, self.labelNames.index(labelsList[i])] = 1
@@ -85,19 +95,19 @@ class BasicNN:
         self.inputSize = dataLen
 
         #  base on an exist formula
-        self.HLSize = (self.inputSize * self.outputSize) ** 0.5 if HLSize == -1 else HLSize
+        self.HLSize = int((self.inputSize * self.outputSize) ** 0.5) if HLSize == -1 else HLSize
 
         # init threshold
-        self.IHThreshold = np.random.random((1, self.HLSize))
-        self.HOThreshold = np.random.random((1, self.outputSize))
+        self.IHThreshold = np.mat(np.random.random((1, self.HLSize)))
+        self.HOThreshold = np.mat(np.random.random((1, self.outputSize)))
 
         # init IH(input-hiddenLayer) weight matrix and HO(hiddenLayer-output) weight matrix
         # IH:(I*H); HO(H*O)
-        self.IH = np.random.random((self.inputSize, self.HLSize))
-        self.HO = np.random.random((self.HLSize, self.outputSize))
+        self.IH = np.mat(np.random.random((self.inputSize, self.HLSize)))
+        self.HO = np.mat(np.random.random((self.HLSize, self.outputSize)))
 
-        self.b = np.zeros((self.numData, self.HLSize))
-        self.yCaret = np.zeros((self.numData, self.outputSize))
+        self.b = np.mat(np.zeros((self.numData, self.HLSize)))
+        self.yCaret = np.mat(np.zeros((self.numData, self.outputSize)))
 
     #  train should be call after init
     #  since i wanna return a small size predictor
@@ -109,22 +119,23 @@ class BasicNN:
 
             for j in range(self.numData):
                 #  g [size:(1, self.outputSize)] and e [size(1, self.HLSize)] should be array
-                g = self.yCaret[j, :].getA()[0] * (np.ones((1, self.outputSize))[0] - self.yCaret[j, :].getA()[0]) * \
-                    (self.labelsMat[j, :].getA()[0] - self.yCaret[j, :].getA()[0])
-                e = self.b[j, :].getA()[0] * (np.ones((1, self.HLSize))[0] - self.b[j, :].getA()[0]) * \
-                    ((self.HO[j, :] * np.mat(g).T).tolist()[0][0])
+                g = self.yCaret[j, :] * np.mat((np.ones((self.outputSize, 1))) - self.yCaret[j, :]) * \
+                    (self.labelsMat[j, :] - self.yCaret[j, :].T)
+                e = self.b[j, :] * np.mat((np.ones((self.HLSize, 1))) - self.b[j, :]) * \
+                    ((self.HO * np.mat(g).T).tolist()[0][0])
 
                 #  upgrade weight IH
                 self.IH = self.IH + self.learnRate[0] * self.dataMat[j, :].T * np.mat(e)
 
                 #  upgrade weight HO
-                self.HO = self.HO + self.learnRate[1] * self.b[j, :].T * np.mat(g)  # not sure
+                self.HO = self.HO + self.learnRate[1] * (np.mat(self.b[j, :])).T * np.mat(g)  # not sure
 
                 #  upgrade threshold
                 self.IHThreshold = self.IHThreshold - self.learnRate[0] * e
                 self.HOThreshold = self.HOThreshold - self.learnRate[1] * g
 
-        return Predictor(self.HLSize, self.outputSize, self.IH, self.IHThreshold, self.HO, self.HOThreshold)
+        return Predictor(self.labelNames, self.HLSize, self.outputSize, self.IH, self.IHThreshold, self.HO,
+                         self.HOThreshold)
 
     def calculateErrorRate(self):
         #  calculate the error rate
@@ -133,16 +144,18 @@ class BasicNN:
         errorCounter = 0
 
         for i in range(self.numData):
-
             #  get the output of j-th neuron in hidden layer(after active function)
             for j in range(self.HLSize):
-                self.b[i, j] = Sigmoid((self.dataMat[i, :] * self.IH[:, j].T).tolist()[0][0] - self.IHThreshold[0, j])
-
+                self.b[i, j] = Sigmoid((self.dataMat[i, :] * self.IH[:, j]).tolist()[0][0] -
+                                       self.IHThreshold[0, j])
             #  get the output of j-th neuron in output(after active function)
             for j in range(self.outputSize):
-                self.yCaret[i, j] = Sigmoid((self.b[i, :] * self.HO[:, j].T).tolist[0][0] - self.HOThreshold[0, j])
+                self.yCaret[i, j] = Sigmoid((np.mat(self.b[i, :]) * self.HO[:, j]).tolist()[0][0] -
+                                            self.HOThreshold[0, j])
 
             temp = self.yCaret[i, :] - self.labelsMat[i, :]
             errorCounter += (temp * temp.T).tolist()[0][0]
+
+        print(errorCounter / self.numData)
 
         return errorCounter / self.numData  # is it right?
