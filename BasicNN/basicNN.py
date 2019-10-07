@@ -87,6 +87,10 @@ class BasicNN:
         for i in range(len(labelsList)):
             self.labelsMat[i, self.labelNames.index(labelsList[i])] = 1
 
+        self.tempLabelsMat = np.mat(np.zeros((self.outputSize, self.outputSize)))
+        for i in range(self.outputSize):
+            self.tempLabelsMat[i, self.outputSize - 1 - i] = 1
+
         self.learnRate = (learnRateIH, learnRateHO)
         self.errorRate = errorRate
         self.maxIter = maxIter
@@ -134,6 +138,12 @@ class BasicNN:
                 self.IHThreshold = self.IHThreshold - self.learnRate[0] * e
                 self.HOThreshold = self.HOThreshold - self.learnRate[1] * g
 
+                """print(self.IH)
+                print(self.HO)
+                print(self.IHThreshold)
+                print(self.HOThreshold)
+                print('end')"""
+
         return Predictor(self.labelNames, self.HLSize, self.outputSize, self.IH, self.IHThreshold, self.HO,
                          self.HOThreshold)
 
@@ -146,15 +156,24 @@ class BasicNN:
         for i in range(self.numData):
             #  get the output of j-th neuron in hidden layer(after active function)
             for j in range(self.HLSize):
-                self.b[i, j] = Sigmoid((self.dataMat[i, :] * self.IH[:, j]).tolist()[0][0] -
-                                       self.IHThreshold[0, j])
+                self.b[i, j] = Sigmoid(((self.dataMat[i, :] * self.IH[:, j]) -
+                                       self.IHThreshold[0, j]).tolist()[0][0])
             #  get the output of j-th neuron in output(after active function)
             for j in range(self.outputSize):
-                self.yCaret[i, j] = Sigmoid((np.mat(self.b[i, :]) * self.HO[:, j]).tolist()[0][0] -
-                                            self.HOThreshold[0, j])
+                self.yCaret[i, j] = Sigmoid(((np.mat(self.b[i, :]) * self.HO[:, j]) -
+                                            self.HOThreshold[0, j]).tolist()[0][0])
 
-            temp = self.yCaret[i, :] - self.labelsMat[i, :]
-            errorCounter += (temp * temp.T).tolist()[0][0]
+            temp = []
+
+            for ite in range(self.outputSize):
+                temp.append(((np.abs(self.yCaret[i, :] - self.tempLabelsMat[ite, :].T)) *
+                             (np.abs(self.yCaret[i, :] - self.tempLabelsMat[ite, :])).T).tolist()[0][0])
+
+            print(self.tempLabelsMat[temp.index(min(temp))].tolist()[0])
+            print(self.labelsMat[i].tolist()[0])
+
+            if self.tempLabelsMat[temp.index(min(temp))].tolist()[0] != self.labelsMat[i].tolist()[0]:
+                errorCounter += 1
 
         print(errorCounter / self.numData)
 
