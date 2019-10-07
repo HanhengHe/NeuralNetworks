@@ -124,6 +124,8 @@ class BasicNN:
                 self.IHThreshold = self.IHThreshold - self.learnRate[0] * e
                 self.HOThreshold = self.HOThreshold - self.learnRate[1] * g
 
+        return Predictor(self.HLSize, self.outputSize, self.IH, self.IHThreshold, self.HO, self.HOThreshold)
+
     def calculateErrorRate(self):
         #  calculate the error rate
         #  base on matrix IH and HO
@@ -144,5 +146,3 @@ class BasicNN:
             errorCounter += (temp * temp.T).tolist()[0][0]
 
         return errorCounter / self.numData  # is it right?
-
-#  work part
