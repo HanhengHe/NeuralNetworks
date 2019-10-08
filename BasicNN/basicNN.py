@@ -27,7 +27,7 @@ class Predictor:
 
         self.labelsMat = np.mat(np.zeros((self.outputSize, self.outputSize)))
         for i in range(self.outputSize):
-            self.labelsMat[i, self.outputSize-1-i] = 1
+            self.labelsMat[i, self.outputSize - 1 - i] = 1
 
     def predict(self, X):
         #  type check
@@ -46,10 +46,15 @@ class Predictor:
         for j in range(self.outputSize):
             yCaret[0, j] = Sigmoid(((b[0, :] * self.HO[:, j]) - self.HOThreshold[0, j]).tolist()[0][0])
 
+        print(yCaret, end=':; ')
+
         temp = []
 
         for i in range(self.outputSize):
-            temp.append((np.abs(yCaret - self.labelsMat[i, :])).tolist()[0])
+            temp.append(((np.abs(yCaret - self.labelsMat[i, :])) *
+                         (np.abs(yCaret - self.labelsMat[i, :])).T).tolist()[0][0])
+
+        print(self.labelsName[temp.index(min(temp))])
 
         return self.labelsName[temp.index(min(temp))]
 
@@ -62,7 +67,8 @@ class Predictor:
 # HLSize means number of hidden layers. -1 allow computer to make a decision itself
 
 class BasicNN:
-    def __init__(self, dataList, labelsList, learnRateIH=0.8, learnRateHO=0.8, errorRate=0.05, maxIter=20, HLSize=-1):
+    def __init__(self, dataList, labelsList, learnRateIH=0.8, learnRateHO=0.8, errorRate=0.05, maxIter=20, alpha=1,
+                 HLSize=-1):
         #  type check
         if not isinstance(dataList, list):
             raise NameError('DataList should be list')
@@ -76,21 +82,25 @@ class BasicNN:
         if not isinstance(HLSize, int):
             raise NameError('NumHL should be int')
 
-        self.dataMat = np.mat(dataList)
-        self.numData, dataLen = np.shape(self.dataMat)
+        self.dataMat = np.mat(dataList)  # dataset
+        self.numData, dataLen = np.shape(self.dataMat)  # record shape of dataset
 
-        # I'm not sure whether this output size is suitable
+        # turn labels into 1 and 0
         self.labelNames = list(set(labelsList))  # for remember the meanings of transformed labels
         self.outputSize = len(self.labelNames)
         self.labelsMat = np.mat(np.zeros((self.numData, self.outputSize)))
 
+        self.transferLabelsMat = np.mat(np.zeros((self.outputSize, self.outputSize)))
+        for i in range(self.outputSize):
+            self.transferLabelsMat[i, i] = 1
+
         for i in range(len(labelsList)):
             self.labelsMat[i, self.labelNames.index(labelsList[i])] = 1
 
-        self.tempLabelsMat = np.mat(np.zeros((self.outputSize, self.outputSize)))
-        for i in range(self.outputSize):
-            self.tempLabelsMat[i, self.outputSize - 1 - i] = 1
+        print(self.labelNames)
+        print(self.transferLabelsMat)
 
+        # record parameter
         self.learnRate = (learnRateIH, learnRateHO)
         self.errorRate = errorRate
         self.maxIter = maxIter
@@ -99,7 +109,7 @@ class BasicNN:
         self.inputSize = dataLen
 
         #  base on an exist formula
-        self.HLSize = int((self.inputSize * self.outputSize) ** 0.5) if HLSize == -1 else HLSize
+        self.HLSize = int((self.inputSize + self.outputSize) ** 0.5 + alpha) if HLSize == -1 else HLSize
 
         # init threshold
         self.IHThreshold = np.mat(np.random.random((1, self.HLSize)))
@@ -110,39 +120,43 @@ class BasicNN:
         self.IH = np.mat(np.random.random((self.inputSize, self.HLSize)))
         self.HO = np.mat(np.random.random((self.HLSize, self.outputSize)))
 
-        self.b = np.mat(np.zeros((self.numData, self.HLSize)))
-        self.yCaret = np.mat(np.zeros((self.numData, self.outputSize)))
-
     #  train should be call after init
     #  since i wanna return a small size predictor
     def train(self):
         # start training
-        for i in range(self.maxIter):
+        for _ in range(self.maxIter):
+            # calculate the error rate with the hold data set
+            # if small enough the quit the loop
             if self.calculateErrorRate() <= self.errorRate:
                 break
 
-            for j in range(self.numData):
-                #  g [size:(1, self.outputSize)] and e [size(1, self.HLSize)] should be array
-                g = self.yCaret[j, :] * np.mat((np.ones((self.outputSize, 1))) - self.yCaret[j, :]) * \
-                    (self.labelsMat[j, :] - self.yCaret[j, :].T)
-                e = self.b[j, :] * np.mat((np.ones((self.HLSize, 1))) - self.b[j, :]) * \
-                    ((self.HO * np.mat(g).T).tolist()[0][0])
+            # train with every data set
+            for i in range(self.numData):
+
+                # get output of hidden layer
+                b = np.mat(np.zeros((1, self.HLSize)))
+                for j in range(self.HLSize):
+                    b[0, j] = Sigmoid(((self.dataMat[i, :] * self.IH[:, j]) - self.IHThreshold[0, j]).tolist()[0][0])
+
+                # get output of output layer
+                yCaret = np.mat(np.zeros((1, self.outputSize)))
+                for j in range(self.outputSize):
+                    yCaret[0, j] = Sigmoid(((b * self.HO[:, j]) - self.HOThreshold[0, j]).tolist()[0][0])
+
+                # calculate g and e defined by watermelon book
+                #  g [size:(1, self.outputSize)] and e [size(1, self.HLSize)] should be narray
+                g = yCaret.getA() * (np.ones((1, self.outputSize)) - yCaret).getA() * (self.labelsMat[i, :] - yCaret).getA()
+                e = b.getA() * (np.ones((1, self.HLSize)) - b).getA() * ((self.HO * np.mat(g).T).T.getA())
 
                 #  upgrade weight IH
-                self.IH = self.IH + self.learnRate[0] * self.dataMat[j, :].T * np.mat(e)
+                self.IH = self.IH + self.learnRate[0] * self.dataMat[i, :].T * np.mat(e)
 
                 #  upgrade weight HO
-                self.HO = self.HO + self.learnRate[1] * (np.mat(self.b[j, :])).T * np.mat(g)  # not sure
+                self.HO = self.HO + self.learnRate[1] * b.T * np.mat(g)  # not sure
 
                 #  upgrade threshold
                 self.IHThreshold = self.IHThreshold - self.learnRate[0] * e
                 self.HOThreshold = self.HOThreshold - self.learnRate[1] * g
-
-                """print(self.IH)
-                print(self.HO)
-                print(self.IHThreshold)
-                print(self.HOThreshold)
-                print('end')"""
 
         return Predictor(self.labelNames, self.HLSize, self.outputSize, self.IH, self.IHThreshold, self.HO,
                          self.HOThreshold)
@@ -154,27 +168,24 @@ class BasicNN:
         errorCounter = 0
 
         for i in range(self.numData):
+
             #  get the output of j-th neuron in hidden layer(after active function)
+            b = np.mat(np.zeros((1, self.HLSize)))
             for j in range(self.HLSize):
-                self.b[i, j] = Sigmoid(((self.dataMat[i, :] * self.IH[:, j]) -
-                                       self.IHThreshold[0, j]).tolist()[0][0])
-            #  get the output of j-th neuron in output(after active function)
+                b[0, j] = Sigmoid(((self.dataMat[i, :] * self.IH[:, j]) - self.IHThreshold[0, j]).tolist()[0][0])
+
+            # get output of output layer
+            yCaret = np.mat(np.zeros((1, self.outputSize)))
             for j in range(self.outputSize):
-                self.yCaret[i, j] = Sigmoid(((np.mat(self.b[i, :]) * self.HO[:, j]) -
-                                            self.HOThreshold[0, j]).tolist()[0][0])
+                yCaret[0, j] = Sigmoid(((b * self.HO[:, j]) - self.HOThreshold[0, j]).tolist()[0][0])
 
             temp = []
 
-            for ite in range(self.outputSize):
-                temp.append(((np.abs(self.yCaret[i, :] - self.tempLabelsMat[ite, :].T)) *
-                             (np.abs(self.yCaret[i, :] - self.tempLabelsMat[ite, :])).T).tolist()[0][0])
+            for k in range(self.outputSize):
+                temp.append((np.abs(yCaret - self.transferLabelsMat[k, :]) *
+                             np.abs(yCaret - self.transferLabelsMat[k, :]).T).tolist()[0][0])
 
-            print(self.tempLabelsMat[temp.index(min(temp))].tolist()[0])
-            print(self.labelsMat[i].tolist()[0])
-
-            if self.tempLabelsMat[temp.index(min(temp))].tolist()[0] != self.labelsMat[i].tolist()[0]:
+            if self.transferLabelsMat[temp.index(min(temp))].tolist()[0] != self.labelsMat[i].tolist()[0]:
                 errorCounter += 1
-
-        print(errorCounter / self.numData)
 
         return errorCounter / self.numData  # is it right?
