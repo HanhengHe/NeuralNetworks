@@ -3,3 +3,12 @@ better finish before the end of October holiday
 
 (input)-[active function, weight]->(hiddenLayer)-[active function, weight]->(output)
         [       IH(i, j)        ]                [        HO(i, j)       ]
+
+parameter:
+errorRate=0.1, maxIter=200, learnRateIH=0.2, learnRateHO=0.2
+result:
+0.1    1  times
+0.033  13 times
+0.433  2  times
+0.066  1  times
+0.366  2  times     in 20 times(total)
