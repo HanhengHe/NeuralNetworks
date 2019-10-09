@@ -6,7 +6,7 @@ import numpy as np
 #                   size parameter                 #
 ####################################################
 # svc get double size
-trainSize = 10
+trainSize = 50
 testSize = 10
 
 ####################################################
