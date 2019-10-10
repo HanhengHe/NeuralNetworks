@@ -150,17 +150,29 @@ class BasicNN:
                 # calculate g and e defined by watermelon book
                 #  g [size:(1, self.outputSize)] and e [size(1, self.HLSize)] should be narray
                 g = yCaret.getA() * (np.ones((1, self.outputSize)) - yCaret).getA() * (self.labelsMat[i, :] - yCaret).getA()
-                e = b.getA() * (np.ones((1, self.HLSize)) - b).getA() * ((self.HO * np.mat(g).T).T.getA())
+                e = b.getA() * (np.ones((1, self.HLSize)) - b).getA() * ((self.HO * np.mat(g).T).T.getA())  # !!
 
                 #  upgrade weight IH
+                # print(self.learnRate[0])
+                # print(self.dataMat[i, :])
+                print(np.mat(e))
+                # print(self.learnRate[0] * self.dataMat[i, :].T * np.mat(e))
                 self.IH = self.IH + self.learnRate[0] * self.dataMat[i, :].T * np.mat(e)
 
                 #  upgrade weight HO
+                # print(self.learnRate[1] * b.T * np.mat(g))
                 self.HO = self.HO + self.learnRate[1] * b.T * np.mat(g)  # not sure
 
                 #  upgrade threshold
+                # print(self.learnRate[0] * e)
+                # print(self.learnRate[1] * g)
                 self.IHThreshold = self.IHThreshold - self.learnRate[0] * e
                 self.HOThreshold = self.HOThreshold - self.learnRate[1] * g
+
+            # print(self.IH)
+            # print(self.HO)
+            # print(self.IHThreshold)
+            # print(self.HOThreshold)
 
         return Predictor(self.labelNames, self.HLSize, self.outputSize, self.IH, self.IHThreshold, self.HO,
                          self.HOThreshold)
@@ -196,4 +208,6 @@ class BasicNN:
             if self.transferLabelsMat[temp.index(min(temp))].tolist()[0] != self.labelsMat[i].tolist()[0]:
                 errorCounter += 1
 
-        return errorCounter / self.numData  # is it right?
+        print(errorCounter / self.numData)
+
+        return errorCounter / self.numData

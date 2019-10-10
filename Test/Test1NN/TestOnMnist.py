@@ -106,7 +106,7 @@ for line in testFile.readlines():
 
 testFile.close()
 
-basicNN = BasicNN(trainList, trainLabels, errorRate=0.1, maxIter=200, learnRateIH=0.2, learnRateHO=0.2).train()
+basicNN = BasicNN(trainList, trainLabels, HLSize=10, errorRate=0.1, maxIter=10000, learnRateIH=0.8, learnRateHO=0.8).train()
 
 ############################################################################
 #                                 test                                     #
