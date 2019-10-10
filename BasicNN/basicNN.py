@@ -72,7 +72,7 @@ class Predictor:
 
 class BasicNN:
     def __init__(self, dataList, labelsList, learnRateIH=0.8, learnRateHO=0.8, errorRate=0.05, maxIter=20, alpha=1,
-                 HLSize=-1):
+                 HLSize=-1, IHpar=-1, HOpar=-1):
         #  type check
         if not isinstance(dataList, list):
             raise NameError('DataList should be list')
@@ -102,7 +102,6 @@ class BasicNN:
             self.labelsMat[i, self.labelNames.index(labelsList[i])] = 1
 
         print(self.labelNames)
-        # print(self.transferLabelsMat)
 
         # record parameter
         self.learnRate = (learnRateIH, learnRateHO)
@@ -119,10 +118,26 @@ class BasicNN:
         self.IHThreshold = np.mat(np.random.random((1, self.HLSize)))
         self.HOThreshold = np.mat(np.random.random((1, self.outputSize)))
 
+        temp = 0
+        for i in range(len(dataList)):
+            temp += np.sum(self.dataMat[i, :])
+
+        temp = temp / len(dataList)
+
+        if IHpar == -1:
+            self.IHpar = 1 / temp
+        else:
+            self.IHpar = IHpar
+
+        if HOpar == -1:
+            self.HOpar = self.IHpar  # not sure here
+        else:
+            self.HOpar = HOpar
+
         # init IH(input-hiddenLayer) weight matrix and HO(hiddenLayer-output) weight matrix
         # IH:(I*H); HO(H*O)
-        self.IH = np.mat(np.random.random((self.inputSize, self.HLSize)))
-        self.HO = np.mat(np.random.random((self.HLSize, self.outputSize)))
+        self.IH = np.mat(np.random.random((self.inputSize, self.HLSize))) * self.IHpar
+        self.HO = np.mat(np.random.random((self.HLSize, self.outputSize))) * self.HOpar
 
     #  train should be call after init
     #  since i wanna return a small size predictor
@@ -147,33 +162,23 @@ class BasicNN:
                 for j in range(self.outputSize):
                     yCaret[0, j] = Sigmoid(((b * self.HO[:, j]) - self.HOThreshold[0, j]).tolist()[0][0])
 
+                # print(b)
+
                 # calculate g and e defined by watermelon book
                 #  g [size:(1, self.outputSize)] and e [size(1, self.HLSize)] should be narray
-                g = yCaret.getA() * (np.ones((1, self.outputSize)) - yCaret).getA() * (self.labelsMat[i, :] - yCaret).getA()
-                print(g)
+                g = yCaret.getA() * (np.ones((1, self.outputSize)) - yCaret).getA() * (
+                            self.labelsMat[i, :] - yCaret).getA()
                 e = b.getA() * (np.ones((1, self.HLSize)) - b).getA() * ((self.HO * np.mat(g).T).T.getA())  # !!
 
                 #  upgrade weight IH
-                # print(self.learnRate[0])
-                # print(self.dataMat[i, :])
-                # print(np.mat(e))
-                # print(self.learnRate[0] * self.dataMat[i, :].T * np.mat(e))
                 self.IH = self.IH + self.learnRate[0] * self.dataMat[i, :].T * np.mat(e)
 
                 #  upgrade weight HO
-                # print(self.learnRate[1] * b.T * np.mat(g))
                 self.HO = self.HO + self.learnRate[1] * b.T * np.mat(g)  # not sure
 
                 #  upgrade threshold
-                # print(self.learnRate[0] * e)
-                # print(self.learnRate[1] * g)
                 self.IHThreshold = self.IHThreshold - self.learnRate[0] * e
                 self.HOThreshold = self.HOThreshold - self.learnRate[1] * g
-
-            # print(self.IH)
-            # print(self.HO)
-            # print(self.IHThreshold)
-            # print(self.HOThreshold)
 
         return Predictor(self.labelNames, self.HLSize, self.outputSize, self.IH, self.IHThreshold, self.HO,
                          self.HOThreshold)

@@ -7,8 +7,8 @@ import numpy as np
 #                   size parameter                 #
 ####################################################
 # svc get double size
-trainSize = 100
-testSize = 50
+trainSize = 200
+testSize = 100
 
 ####################################################
 #                    parameter                     #
@@ -106,7 +106,7 @@ for line in testFile.readlines():
 
 testFile.close()
 
-basicNN = BasicNN(trainList, trainLabels, HLSize=10, errorRate=0.1, maxIter=10000, learnRateIH=0.8, learnRateHO=0.8).train()
+basicNN = BasicNN(trainList, trainLabels, errorRate=0.05, maxIter=10000, learnRateIH=0.5, learnRateHO=0.5).train()
 
 ############################################################################
 #                                 test                                     #
