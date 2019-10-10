@@ -150,12 +150,13 @@ class BasicNN:
                 # calculate g and e defined by watermelon book
                 #  g [size:(1, self.outputSize)] and e [size(1, self.HLSize)] should be narray
                 g = yCaret.getA() * (np.ones((1, self.outputSize)) - yCaret).getA() * (self.labelsMat[i, :] - yCaret).getA()
+                print(g)
                 e = b.getA() * (np.ones((1, self.HLSize)) - b).getA() * ((self.HO * np.mat(g).T).T.getA())  # !!
 
                 #  upgrade weight IH
                 # print(self.learnRate[0])
                 # print(self.dataMat[i, :])
-                print(np.mat(e))
+                # print(np.mat(e))
                 # print(self.learnRate[0] * self.dataMat[i, :].T * np.mat(e))
                 self.IH = self.IH + self.learnRate[0] * self.dataMat[i, :].T * np.mat(e)
 
