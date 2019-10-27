@@ -23,8 +23,11 @@ def ReLU(X):
     return X
 
 # d(ReLU)/dx
-def dReLU(x):
-    return 1 if x >= 0 else 0
+def dReLU(X):
+    _, n = np.shape(X)
+    for i in range(n):
+        X[0, i] = 1 if X[0, i] >= 0 else 0
+    return X
 
 # **************************************************************
 
@@ -32,14 +35,11 @@ def dReLU(x):
 # ************************Predictor*****************************
 # low memory require Predictor
 class Predictor:
-    def __init__(self, labelsName, HLSize, outputSize, IH, IHThreshold, HO, HOThreshold):
+    def __init__(self, labelsName, outputSize, Weight, Threshold):
         self.labelsName = labelsName
-        self.HLSize = HLSize
         self.outputSize = outputSize
-        self.IH = IH
-        self.IHThreshold = IHThreshold
-        self.HO = HO
-        self.HOThreshold = HOThreshold
+        self.Weight = Weight
+        self.Threshold = Threshold
 
         self.labelsMat = np.mat(np.zeros((self.outputSize, self.outputSize)))
         for i in range(self.outputSize):
@@ -53,18 +53,15 @@ class Predictor:
         #  change type
         X = np.mat(X)
 
-        b = np.mat(np.zeros((1, self.HLSize)))
-        yCaret = np.zeros((1, self.outputSize))
+        signal = X
 
-        for j in range(self.HLSize):
-            b[0, j] = Sigmoid(((X * self.IH[:, j]) - self.IHThreshold[0, j]).tolist()[0][0])
+        for i in range(0, len(self.Weight)-1):
+            signal = ReLU(signal * self.Weight[i] - self.Threshold[i])
 
-        for j in range(self.outputSize):
-            yCaret[0, j] = Sigmoid(((b[0, :] * self.HO[:, j]) - self.HOThreshold[0, j]).tolist()[0][0])
+        output = Sigmoid(signal * self.Weight[len(self.Weight) - 1] - self.Threshold[len(self.Threshold) - 1])
 
-        print(yCaret, end=':; ')
+        temp = (np.abs(output - np.mat(np.ones((1, self.outputSize))))).tolist()[0]
 
-        temp = (np.abs(yCaret - np.ones((1, self.outputSize)))).tolist()[0]
         print(self.labelsName[temp.index(min(temp))])
         return self.labelsName[temp.index(min(temp))]
 
@@ -83,7 +80,7 @@ class Predictor:
 # HLSize means number of hidden layers. -1 allow computer to make a decision itself
 
 class BasicNN:
-    def __init__(self, dataList, labelsList, Depth=1, learnRateIH=0.8, learnRateHO=0.8, errorRate=0.05, maxIter=20,
+    def __init__(self, dataList, labelsList, Depth=1, learnRateIH=0.8, learnRateH=0.8, learnRateHO=0.8, errorRate=0.05, maxIter=20,
                  alpha=1, HLSize=-1, fixParameter=-1, ):
         #  type check
         if not isinstance(dataList, list):
@@ -118,7 +115,7 @@ class BasicNN:
         print(self.labelNames)
 
         # record parameter
-        self.learnRate = (learnRateIH, learnRateHO)
+        self.learnRate = (learnRateIH, learnRateH, learnRateHO)
         self.errorRate = errorRate
         self.maxIter = maxIter
 
@@ -146,7 +143,7 @@ class BasicNN:
         # IH:(I*H); H(HLSize*HLSize); HO(H*O)
         # init IH(input-hiddenLayer) weight matrix
         self.Weight = [].append(np.mat(np.random.random((self.inputSize, self.HLSize))) * fixParameter)
-        self.Threshold = []
+        self.Threshold = [].append(np.mat(np.random.random((1, self.HLSize))))
 
         # H(weight inside hidden layer) weight matrix
         for i in range(Depth - 1):
@@ -154,8 +151,8 @@ class BasicNN:
             self.Threshold.append(np.mat(np.random.random((1, self.HLSize))))
 
         # HO(hiddenLayer-output) weight matrix
-        self.outputWeight = np.mat(np.random.random((self.HLSize, self.outputSize))) * fixParameter
-        self.outputThreshold = np.mat(np.random.random((1, self.outputSize)))
+        self.Weight.append(np.mat(np.random.random((self.HLSize, self.outputSize))) * fixParameter)
+        self.Threshold.append(np.mat(np.random.random((1, self.outputSize))))
 
     #  train should be call after init
     #  since i wanna return a small size predictor
@@ -169,42 +166,44 @@ class BasicNN:
             # train with every data set
             for i in range(self.numData):
 
+                currentLabel = self.labelsMat[i, :]
+
                 # Gather output of every neurons
-                signal = self.dataMat[i, :] * self.Weight[0]
-                Output = [].append(signal)
+                signal = self.dataMat[i, :]
+                Signal = [].append(signal)
 
-                for j in range(1, len(self.Weight)):
-                    signal = ReLU(signal * self.Weight[j] - self.Threshold[j - 1])
-                    Output.append(signal)
+                for j in range(0, len(self.Weight)-1):
+                    signal = ReLU(signal * self.Weight[j] - self.Threshold[j])
+                    Signal.append(signal)
 
-                # actually the last one of Output is useless = =
-
+                # ! DELTA IS REVERSED !
                 Delta = []
+
                 # Gather delta for every layer
-                # the output-hidden layer since active function is different
-                delta =
-                Delta.append()
 
-                # print(b)
+                # the output-hidden layer (since active function is different)
+                lastInput = signal * self.Weight[len(self.Weight-1)]
+                delta = Sigmoid(lastInput - self.Threshold[len(self.Threshold)-1]) - currentLabel
+                Delta.append(delta.getA() * lastInput.getA() * (1-lastInput).getA())
 
-                # calculate g and e defined by watermelon book
-                #  g [size:(1, self.outputSize)] and e [size(1, self.HLSize)] should be narray
-                g = yCaret.getA() * (np.ones((1, self.outputSize)) - yCaret).getA() * (
-                        self.labelsMat[i, :] - yCaret).getA()
-                e = b.getA() * (np.ones((1, self.HLSize)) - b).getA() * ((self.HO * np.mat(g).T).T.getA())  # !!
+                # the rest
+                for j in range(self.HLSize):
+                    delta = Delta[j] * self.Weight[len(self.Weight)-j-1].T
+                    lastInput = Signal[len(Signal)-j-2] * self.Weight[len(self.Weight)-j-2] - self.Threshold[len(self.Threshold)-j-2]
+                    Delta.append(delta.getA() * (dReLU(lastInput).getA()))
 
-                #  upgrade weight IH
-                self.IH = self.IH + self.learnRate[0] * self.dataMat[i, :].T * np.mat(e)
+                # update Weight and Threshold
+                self.Weight[0] -= self.learnRate[0] * Signal[0] * Delta[len(Delta)-1]
+                self.Threshold[0] += self.learnRate[0] * Delta[len(Delta)-1]
 
-                #  upgrade weight HO
-                self.HO = self.HO + self.learnRate[1] * b.T * np.mat(g)  # not sure
+                self.Weight[len(self.Weight)-1] -= self.learnRate[2] * Signal[len(Signal)-1] * Delta[0]
+                self.Threshold[len(self.Weight) - 1] += self.learnRate[2] * Delta[0]
 
-                #  upgrade threshold
-                self.IHThreshold = self.IHThreshold - self.learnRate[0] * e
-                self.HOThreshold = self.HOThreshold - self.learnRate[1] * g
+                for j in range(1, self.Weight-1):
+                    self.Weight[j] -= self.learnRate[1] * Signal[j] * Delta[len(self.Weight)-j-1]
+                    self.Threshold[j] += self.learnRate[1] * Delta[len(self.Weight) - j - 1]
 
-        return Predictor(self.labelNames, self.HLSize, self.outputSize, self.IH, self.IHThreshold, self.HO,
-                         self.HOThreshold)
+        return Predictor(self.labelNames, self.outputSize, self.Weight, self.Threshold)
 
     def calculateErrorRate(self):
         #  calculate the error rate
@@ -213,14 +212,14 @@ class BasicNN:
 
         for i in range(self.numData):
 
-            signal = self.dataMat[i, :] * self.Weight[0]
+            signal = self.dataMat[i, :]
 
-            for j in range(1, len(self.Weight)):
-                signal = ReLU(signal * self.Weight[j] - self.Threshold[j-1])
+            for j in range(0, len(self.Weight)-1):
+                signal = ReLU(signal * self.Weight[j] - self.Threshold[j])
 
-            yCaret = Sigmoid(signal * self.outputWeight - self.outputThreshold)
+            output = Sigmoid(signal * self.Weight[len(self.Weight)-1] - self.Threshold[len(self.Threshold)-1])
 
-            temp = (np.abs(yCaret - np.mat(np.ones((1, self.outputSize))))).tolist()[0]
+            temp = (np.abs(output - np.mat(np.ones((1, self.outputSize))))).tolist()[0]
             if self.transferLabelsMat[temp.index(min(temp))].tolist()[0] != self.labelsMat[i].tolist()[0]:
                 errorCounter += 1
 
