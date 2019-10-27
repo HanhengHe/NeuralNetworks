@@ -4,8 +4,12 @@ import numpy as np
 from math import exp
 
 
+#  BEFORE CODE:
 #  this is a deep neural network
 #  default depth (not include input and output layer) is one
+#  and i finally realize that my input neurons have no threshold (but that's not a problem)
+#  and i will fix it in this model (but not gonna fix it in basicNN)
+#  for basicNN is deserted when we have a flexible basicDNN (flexible in depth)
 
 # ***********************active function************************
 # Sigmoid is used for output
@@ -16,6 +20,7 @@ def Sigmoid(X):
 # ReLU for rest
 def ReLU(X):
     return X if X >= 0 else 0
+
 
 # **************************************************************
 
@@ -62,6 +67,9 @@ class Predictor:
 
 # **************************************************************
 
+
+# ######################## MAIN CODE ############################
+
 # both dataList and labelsList should be list
 # dataList like [[data00,data01,data02, ...],[data10,data11,data12, ...], ...]
 # labelsList like [label_1, label_2, ...]
@@ -72,7 +80,7 @@ class Predictor:
 
 class BasicNN:
     def __init__(self, dataList, labelsList, Depth=1, learnRateIH=0.8, learnRateHO=0.8, errorRate=0.05, maxIter=20,
-                 alpha=1, HLSize=-1, fixParameter=-1,):
+                 alpha=1, HLSize=-1, fixParameter=-1, ):
         #  type check
         if not isinstance(dataList, list):
             raise NameError('DataList should be list')
@@ -130,18 +138,20 @@ class BasicNN:
             temp = temp / len(dataList)
             fixParameter = 1 / temp
 
-        # weight matrix
+        # weight matrix and Threshold
         # IH:(I*H); H(HLSize*HLSize); HO(H*O)
         # init IH(input-hiddenLayer) weight matrix
-        IH = np.mat(np.random.random((self.inputSize, self.HLSize))) * fixParameter
-        self.Weight = [].append(IH)
+        self.Weight = [].append(np.mat(np.random.random((self.inputSize, self.HLSize))) * fixParameter)
+        self.Threshold = [].append(np.mat(np.random.random((1, self.inputSize))))
 
         # H(weight inside hidden layer) weight matrix
-        for i in range(Depth-1):
+        for i in range(Depth - 1):
             self.Weight.append(np.mat(np.random.random((self.HLSize, self.HLSize))) * fixParameter)
+            self.Threshold.append(np.mat(np.random.random((1, self.HLSize))))
 
-        # and HO(hiddenLayer-output) weight matrix
+        # HO(hiddenLayer-output) weight matrix
         self.Weight.append(np.mat(np.random.random((self.HLSize, self.outputSize))) * fixParameter)
+        self.Threshold.append(np.mat(np.random.random((1, self.outputSize))))
 
     #  train should be call after init
     #  since i wanna return a small size predictor
@@ -204,15 +214,6 @@ class BasicNN:
             yCaret = np.mat(np.zeros((1, self.outputSize)))
             for j in range(self.outputSize):
                 yCaret[0, j] = Sigmoid(((b * self.HO[:, j]) - self.HOThreshold[0, j]).tolist()[0][0])
-
-            """temp = []
-
-            for k in range(self.outputSize):
-                temp.append((np.abs(yCaret - self.transferLabelsMat[k, :]) *
-                             np.abs(yCaret - self.transferLabelsMat[k, :]).T).tolist()[0][0])
-
-            if self.transferLabelsMat[temp.index(min(temp))].tolist()[0] != self.labelsMat[i].tolist()[0]:
-                errorCounter += 1"""
 
             temp = (np.abs(yCaret - np.ones((1, self.outputSize)))).tolist()[0]
             if self.transferLabelsMat[temp.index(min(temp))].tolist()[0] != self.labelsMat[i].tolist()[0]:
