@@ -14,12 +14,15 @@ from math import exp
 # ***********************active function************************
 # Sigmoid is used for output
 def Sigmoid(X):
-    return 1 / (1 + exp(-X))
+    return 1 / (1 + np.exp(-X))
 
 
 # ReLU for rest
 def ReLU(X):
-    return X if X >= 0 else 0
+    _, n = np.shape(X)
+    for i in range(n):
+        X[0, i] = X[0, i] if X[0, i] >= 0 else 0
+    return X
 
 
 # **************************************************************
@@ -150,15 +153,14 @@ class BasicNN:
             self.Threshold.append(np.mat(np.random.random((1, self.HLSize))))
 
         # HO(hiddenLayer-output) weight matrix
-        self.Weight.append(np.mat(np.random.random((self.HLSize, self.outputSize))) * fixParameter)
-        self.Threshold.append(np.mat(np.random.random((1, self.outputSize))))
+        self.outputWeight = np.mat(np.random.random((self.HLSize, self.outputSize))) * fixParameter
+        self.outputThreshold = np.mat(np.random.random((1, self.outputSize)))
 
     #  train should be call after init
     #  since i wanna return a small size predictor
     def train(self):
-        # start training
         for _ in range(self.maxIter):
-            # calculate the error rate with the hold data set
+            # step 1: gather loss
             # if small enough the quit the loop
             if self.calculateErrorRate() <= self.errorRate:
                 break
@@ -199,23 +201,19 @@ class BasicNN:
 
     def calculateErrorRate(self):
         #  calculate the error rate
-        #  base on matrix IH and HO
 
         errorCounter = 0
 
         for i in range(self.numData):
 
-            #  get the output of j-th neuron in hidden layer(after active function)
-            b = np.mat(np.zeros((1, self.HLSize)))
-            for j in range(self.HLSize):
-                b[0, j] = Sigmoid(((self.dataMat[i, :] * self.IH[:, j]) - self.IHThreshold[0, j]).tolist()[0][0])
+            signal = self.dataMat[i, :]
 
-            # get output of output layer
-            yCaret = np.mat(np.zeros((1, self.outputSize)))
-            for j in range(self.outputSize):
-                yCaret[0, j] = Sigmoid(((b * self.HO[:, j]) - self.HOThreshold[0, j]).tolist()[0][0])
+            for weight, threshold in zip(self.Weight, self.Threshold):
+                signal = ReLU(signal * weight - threshold)
 
-            temp = (np.abs(yCaret - np.ones((1, self.outputSize)))).tolist()[0]
+            yCaret = Sigmoid(signal * self.outputWeight - self.outputThreshold)
+
+            temp = (np.abs(yCaret - np.mat(np.ones((1, self.outputSize))))).tolist()[0]
             if self.transferLabelsMat[temp.index(min(temp))].tolist()[0] != self.labelsMat[i].tolist()[0]:
                 errorCounter += 1
 
