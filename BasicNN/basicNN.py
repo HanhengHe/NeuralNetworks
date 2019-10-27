@@ -48,16 +48,6 @@ class Predictor:
 
         print(yCaret, end=':; ')
 
-        """temp = []
-
-        for i in range(self.outputSize):
-            temp.append(((np.abs(yCaret - self.labelsMat[i, :])) *
-                         (np.abs(yCaret - self.labelsMat[i, :])).T).tolist()[0][0])
-
-        print(self.labelsName[temp.index(min(temp))])
-
-        return self.labelsName[temp.index(min(temp))]"""
-
         temp = (np.abs(yCaret - np.ones((1, self.outputSize)))).tolist()[0]
         print(self.labelsName[temp.index(min(temp))])
         return self.labelsName[temp.index(min(temp))]
@@ -200,15 +190,6 @@ class BasicNN:
             yCaret = np.mat(np.zeros((1, self.outputSize)))
             for j in range(self.outputSize):
                 yCaret[0, j] = Sigmoid(((b * self.HO[:, j]) - self.HOThreshold[0, j]).tolist()[0][0])
-
-            """temp = []
-
-            for k in range(self.outputSize):
-                temp.append((np.abs(yCaret - self.transferLabelsMat[k, :]) *
-                             np.abs(yCaret - self.transferLabelsMat[k, :]).T).tolist()[0][0])
-
-            if self.transferLabelsMat[temp.index(min(temp))].tolist()[0] != self.labelsMat[i].tolist()[0]:
-                errorCounter += 1"""
 
             temp = (np.abs(yCaret - np.ones((1, self.outputSize)))).tolist()[0]
             if self.transferLabelsMat[temp.index(min(temp))].tolist()[0] != self.labelsMat[i].tolist()[0]:

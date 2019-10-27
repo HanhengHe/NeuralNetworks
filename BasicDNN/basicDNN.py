@@ -5,7 +5,7 @@ from math import exp
 
 
 #  this is a deep neural network
-#  default deep(not include input and output layer) is one
+#  default depth (not include input and output layer) is one
 
 # ***********************active function************************
 # Sigmoid is used for output
@@ -65,14 +65,14 @@ class Predictor:
 # both dataList and labelsList should be list
 # dataList like [[data00,data01,data02, ...],[data10,data11,data12, ...], ...]
 # labelsList like [label_1, label_2, ...]
+# default depth is one
 # learnRate usually in [0.01, 0.8]. an overSize learnRate will cause unstable learning process
 # tol is the quit condition of loop
 # HLSize means number of hidden layers. -1 allow computer to make a decision itself
 
 class BasicNN:
-    def __init__(self, dataList, labelsList, Deep=1, learnRateIH=0.8, learnRateHO=0.8, errorRate=0.05, maxIter=20,
-                 alpha=1,
-                 HLSize=-1, IHpar=-1, HOpar=-1):
+    def __init__(self, dataList, labelsList, Depth=1, learnRateIH=0.8, learnRateHO=0.8, errorRate=0.05, maxIter=20,
+                 alpha=1, HLSize=-1, fixParameter=-1,):
         #  type check
         if not isinstance(dataList, list):
             raise NameError('DataList should be list')
@@ -86,11 +86,13 @@ class BasicNN:
         if not isinstance(HLSize, int):
             raise NameError('NumHL should be int')
 
-        self.dataMat = np.mat(dataList)  # dataset
-        self.numData, dataLen = np.shape(self.dataMat)  # record shape of dataset
+        self.dataMat = np.mat(dataList)  # dataSet
+        self.numData, dataLen = np.shape(self.dataMat)  # record shape of dataSet
 
         # turn labels into 1 and 0
         self.labelNames = list(set(labelsList))  # for remember the meanings of transformed labels
+
+        # number of output neurons
         self.outputSize = len(self.labelNames)
         self.labelsMat = np.mat(np.zeros((self.numData, self.outputSize)))
 
@@ -108,36 +110,38 @@ class BasicNN:
         self.errorRate = errorRate
         self.maxIter = maxIter
 
-        # number of input nur
+        # number of input neurons
         self.inputSize = dataLen
 
-        #  base on an exist formula
+        # base on an exist formula
+        # number of neurons for each hidden layer
         self.HLSize = int((self.inputSize + self.outputSize) ** 0.5 + alpha) if HLSize == -1 else HLSize
 
-        # init threshold
-        self.IHThreshold = np.mat(np.random.random((1, self.HLSize)))
-        self.HOThreshold = np.mat(np.random.random((1, self.outputSize)))
+        # depth of neural network (not include input and output layer)
+        self.Depth = Depth
 
-        temp = 0
-        for i in range(len(dataList)):
-            temp += np.sum(self.dataMat[i, :])
+        # a part for fix parameter
+        # avoid over size weight when training start
+        if fixParameter == -1:
+            temp = 0
+            for i in range(len(dataList)):
+                temp += np.sum(self.dataMat[i, :])
 
-        temp = temp / len(dataList)
+            temp = temp / len(dataList)
+            fixParameter = 1 / temp
 
-        if IHpar == -1:
-            self.IHpar = 1 / temp
-        else:
-            self.IHpar = IHpar
+        # weight matrix
+        # IH:(I*H); H(HLSize*HLSize); HO(H*O)
+        # init IH(input-hiddenLayer) weight matrix
+        IH = np.mat(np.random.random((self.inputSize, self.HLSize))) * fixParameter
+        self.Weight = [].append(IH)
 
-        if HOpar == -1:
-            self.HOpar = self.IHpar  # not sure here
-        else:
-            self.HOpar = HOpar
+        # H(weight inside hidden layer) weight matrix
+        for i in range(Depth-1):
+            self.Weight.append(np.mat(np.random.random((self.HLSize, self.HLSize))) * fixParameter)
 
-        # init IH(input-hiddenLayer) weight matrix and HO(hiddenLayer-output) weight matrix
-        # IH:(I*H); HO(H*O)
-        self.IH = np.mat(np.random.random((self.inputSize, self.HLSize))) * self.IHpar
-        self.HO = np.mat(np.random.random((self.HLSize, self.outputSize))) * self.HOpar
+        # and HO(hiddenLayer-output) weight matrix
+        self.Weight.append(np.mat(np.random.random((self.HLSize, self.outputSize))) * fixParameter)
 
     #  train should be call after init
     #  since i wanna return a small size predictor
