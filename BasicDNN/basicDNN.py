@@ -8,8 +8,6 @@ from math import exp
 #  this is a deep neural network
 #  default depth (not include input and output layer) is one
 #  and i finally realize that my input neurons have no threshold (but that's not a problem)
-#  and i will fix it in this model (but not gonna fix it in basicNN)
-#  for basicNN is deserted when we have a flexible basicDNN (flexible in depth)
 
 # ***********************active function************************
 # Sigmoid is used for output
@@ -24,6 +22,9 @@ def ReLU(X):
         X[0, i] = X[0, i] if X[0, i] >= 0 else 0
     return X
 
+# d(ReLU)/dx
+def dReLU(x):
+    return 1 if x >= 0 else 0
 
 # **************************************************************
 
@@ -145,7 +146,7 @@ class BasicNN:
         # IH:(I*H); H(HLSize*HLSize); HO(H*O)
         # init IH(input-hiddenLayer) weight matrix
         self.Weight = [].append(np.mat(np.random.random((self.inputSize, self.HLSize))) * fixParameter)
-        self.Threshold = [].append(np.mat(np.random.random((1, self.inputSize))))
+        self.Threshold = []
 
         # H(weight inside hidden layer) weight matrix
         for i in range(Depth - 1):
@@ -160,7 +161,7 @@ class BasicNN:
     #  since i wanna return a small size predictor
     def train(self):
         for _ in range(self.maxIter):
-            # step 1: gather loss
+            # Gather loss
             # if small enough the quit the loop
             if self.calculateErrorRate() <= self.errorRate:
                 break
@@ -168,15 +169,21 @@ class BasicNN:
             # train with every data set
             for i in range(self.numData):
 
-                # get output of hidden layer
-                b = np.mat(np.zeros((1, self.HLSize)))
-                for j in range(self.HLSize):
-                    b[0, j] = Sigmoid(((self.dataMat[i, :] * self.IH[:, j]) - self.IHThreshold[0, j]).tolist()[0][0])
+                # Gather output of every neurons
+                signal = self.dataMat[i, :] * self.Weight[0]
+                Output = [].append(signal)
 
-                # get output of output layer
-                yCaret = np.mat(np.zeros((1, self.outputSize)))
-                for j in range(self.outputSize):
-                    yCaret[0, j] = Sigmoid(((b * self.HO[:, j]) - self.HOThreshold[0, j]).tolist()[0][0])
+                for j in range(1, len(self.Weight)):
+                    signal = ReLU(signal * self.Weight[j] - self.Threshold[j - 1])
+                    Output.append(signal)
+
+                # actually the last one of Output is useless = =
+
+                Delta = []
+                # Gather delta for every layer
+                # the output-hidden layer since active function is different
+                delta =
+                Delta.append()
 
                 # print(b)
 
@@ -206,10 +213,10 @@ class BasicNN:
 
         for i in range(self.numData):
 
-            signal = self.dataMat[i, :]
+            signal = self.dataMat[i, :] * self.Weight[0]
 
-            for weight, threshold in zip(self.Weight, self.Threshold):
-                signal = ReLU(signal * weight - threshold)
+            for j in range(1, len(self.Weight)):
+                signal = ReLU(signal * self.Weight[j] - self.Threshold[j-1])
 
             yCaret = Sigmoid(signal * self.outputWeight - self.outputThreshold)
 
