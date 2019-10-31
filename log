@@ -12,3 +12,8 @@ result:
 0.433  2  times
 0.066  1  times
 0.366  2  times     in 20 times(total)
+
+2019-10-31
+为什么才两层grad就消失了
+我裂开了
+检查ReLU层，感觉不太对劲。。。
