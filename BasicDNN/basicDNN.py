@@ -22,12 +22,14 @@ def ReLU(X):
         X[0, i] = X[0, i] if X[0, i] >= 0 else 0
     return X
 
+
 # d(ReLU)/dx
 def dReLU(X):
     _, n = np.shape(X)
     for i in range(n):
         X[0, i] = 1 if X[0, i] >= 0 else 0
     return X
+
 
 # **************************************************************
 
@@ -55,7 +57,7 @@ class Predictor:
 
         signal = X
 
-        for i in range(0, len(self.Weight)-1):
+        for i in range(0, len(self.Weight) - 1):
             signal = ReLU(signal * self.Weight[i] - self.Threshold[i])
 
         output = Sigmoid(signal * self.Weight[len(self.Weight) - 1] - self.Threshold[len(self.Threshold) - 1])
@@ -80,7 +82,8 @@ class Predictor:
 # HLSize means number of hidden layers. -1 allow computer to make a decision itself
 
 class BasicNN:
-    def __init__(self, dataList, labelsList, Depth=1, learnRateIH=0.8, learnRateH=0.8, learnRateHO=0.8, errorRate=0.05, maxIter=20,
+    def __init__(self, dataList, labelsList, Depth=1, learnRateIH=0.8, learnRateH=0.8, learnRateHO=0.8, errorRate=0.05,
+                 maxIter=20,
                  alpha=1, HLSize=-1, fixParameter=-1, ):
         #  type check
         if not isinstance(dataList, list):
@@ -172,7 +175,7 @@ class BasicNN:
                 signal = self.dataMat[i, :]
                 Signal = [].append(signal)
 
-                for j in range(0, len(self.Weight)-1):
+                for j in range(0, len(self.Weight) - 1):
                     signal = ReLU(signal * self.Weight[j] - self.Threshold[j])
                     Signal.append(signal)
 
@@ -182,25 +185,26 @@ class BasicNN:
                 # Gather delta for every layer
 
                 # the output-hidden layer (since active function is different)
-                lastInput = signal * self.Weight[len(self.Weight-1)]
-                delta = Sigmoid(lastInput - self.Threshold[len(self.Threshold)-1]) - currentLabel
-                Delta.append(delta.getA() * lastInput.getA() * (1-lastInput).getA())
+                lastInput = signal * self.Weight[len(self.Weight - 1)]
+                delta = Sigmoid(lastInput - self.Threshold[len(self.Threshold) - 1]) - currentLabel
+                Delta.append(delta.getA() * lastInput.getA() * (1 - lastInput).getA())
 
                 # the rest
                 for j in range(self.HLSize):
-                    delta = Delta[j] * self.Weight[len(self.Weight)-j-1].T
-                    lastInput = Signal[len(Signal)-j-2] * self.Weight[len(self.Weight)-j-2] - self.Threshold[len(self.Threshold)-j-2]
+                    delta = Delta[j] * self.Weight[len(self.Weight) - j - 1].T
+                    lastInput = Signal[len(Signal) - j - 2] * self.Weight[len(self.Weight) - j - 2] - self.Threshold[
+                        len(self.Threshold) - j - 2]
                     Delta.append(delta.getA() * (dReLU(lastInput).getA()))
 
                 # update Weight and Threshold
-                self.Weight[0] -= self.learnRate[0] * Signal[0] * Delta[len(Delta)-1]
-                self.Threshold[0] += self.learnRate[0] * Delta[len(Delta)-1]
+                self.Weight[0] -= self.learnRate[0] * Signal[0] * Delta[len(Delta) - 1]
+                self.Threshold[0] += self.learnRate[0] * Delta[len(Delta) - 1]
 
-                self.Weight[len(self.Weight)-1] -= self.learnRate[2] * Signal[len(Signal)-1] * Delta[0]
+                self.Weight[len(self.Weight) - 1] -= self.learnRate[2] * Signal[len(Signal) - 1] * Delta[0]
                 self.Threshold[len(self.Weight) - 1] += self.learnRate[2] * Delta[0]
 
-                for j in range(1, self.Weight-1):
-                    self.Weight[j] -= self.learnRate[1] * Signal[j] * Delta[len(self.Weight)-j-1]
+                for j in range(1, self.Weight - 1):
+                    self.Weight[j] -= self.learnRate[1] * Signal[j] * Delta[len(self.Weight) - j - 1]
                     self.Threshold[j] += self.learnRate[1] * Delta[len(self.Weight) - j - 1]
 
         return Predictor(self.labelNames, self.outputSize, self.Weight, self.Threshold)
@@ -214,10 +218,10 @@ class BasicNN:
 
             signal = self.dataMat[i, :]
 
-            for j in range(0, len(self.Weight)-1):
+            for j in range(0, len(self.Weight) - 1):
                 signal = ReLU(signal * self.Weight[j] - self.Threshold[j])
 
-            output = Sigmoid(signal * self.Weight[len(self.Weight)-1] - self.Threshold[len(self.Threshold)-1])
+            output = Sigmoid(signal * self.Weight[len(self.Weight) - 1] - self.Threshold[len(self.Threshold) - 1])
 
             temp = (np.abs(output - np.mat(np.ones((1, self.outputSize))))).tolist()[0]
             if self.transferLabelsMat[temp.index(min(temp))].tolist()[0] != self.labelsMat[i].tolist()[0]:
