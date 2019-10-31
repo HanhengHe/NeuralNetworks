@@ -81,7 +81,7 @@ class Predictor:
 # tol is the quit condition of loop
 # HLSize means number of hidden layers. -1 allow computer to make a decision itself
 
-class BasicNN:
+class BasicDNN:
     def __init__(self, dataList, labelsList, Depth=1, learnRateIH=0.8, learnRateH=0.8, learnRateHO=0.8, errorRate=0.05,
                  maxIter=20,
                  alpha=1, HLSize=-1, fixParameter=-1, ):
