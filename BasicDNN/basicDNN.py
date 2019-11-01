@@ -1,7 +1,8 @@
 # -*- coding: UTF-8 -*-
 
 import numpy as np
-from math import exp
+
+alpha = 0.3  # alpha for PReLU
 
 
 #  BEFORE CODE:
@@ -16,20 +17,20 @@ def Sigmoid(X):
 
 
 # ReLU for rest
-def ReLU(X):
+def PReLU(X):
     _, n = np.shape(X)
     for i in range(n):
-        X[0, i] = X[0, i] if X[0, i] >= 0 else 0
+        X[0, i] = X[0, i] if X[0, i] >= 0 else X[0, i] * alpha
         # X[0, i] = X[0, i] if X[0, i] <= 1 else 1.01
     return X
 
 
 # d(ReLU)/dx
-def dReLU(X):
+def dPReLU(X):
     _, n = np.shape(X)
     for i in range(n):
         # X[0, i] = 1 if X[0, i] >= 0 and X[0, i] != 1.01 else 0
-        X[0, i] = 1 if X[0, i] >= 0 else 0
+        X[0, i] = 1 if X[0, i] >= 0 else alpha
     return X
 
 
@@ -60,7 +61,7 @@ class Predictor:
         signal = X
 
         for i in range(0, len(self.Weight) - 1):
-            signal = ReLU(signal * self.Weight[i] - self.Threshold[i])
+            signal = PReLU(signal * self.Weight[i] - self.Threshold[i])
 
         output = Sigmoid(signal * self.Weight[len(self.Weight) - 1] - self.Threshold[len(self.Threshold) - 1])
 
@@ -180,7 +181,7 @@ class BasicDNN:
                 Signal = [signal]
 
                 for j in range(0, len(self.Weight) - 1):
-                    signal = ReLU(signal * self.Weight[j] - self.Threshold[j])
+                    signal = PReLU(signal * self.Weight[j] - self.Threshold[j])
                     Signal.append(signal)
 
                 # ! DELTA IS REVERSED !
@@ -189,15 +190,17 @@ class BasicDNN:
                 # Gather delta for every layer
 
                 # the output-hidden layer (since active function is different)
-                lastElect = Sigmoid(signal * self.Weight[len(self.Weight) - 1] - self.Threshold[len(self.Threshold) - 1])
-                delta = lastElect - currentLabel
-                Delta.append(delta.getA() * lastElect.getA() * (1 - lastElect).getA())
+                lastPotential = Sigmoid(
+                    signal * self.Weight[len(self.Weight) - 1] - self.Threshold[len(self.Threshold) - 1])
+                delta = lastPotential - currentLabel
+                Delta.append(delta.getA() * lastPotential.getA() * (1 - lastPotential).getA())
 
                 # the rest
                 for j in range(self.Depth):
                     delta = Delta[j] * self.Weight[len(self.Weight) - j - 1].T
-                    lastInput = Signal[len(Signal) - j - 1] * self.Weight[len(self.Weight) - j - 1] - self.Threshold[len(self.Threshold) - j - 1]
-                    Delta.append(delta.getA() * (dReLU(lastInput).getA()))
+                    lastInput = Signal[len(Signal) - j - 1] * self.Weight[len(self.Weight) - j - 1] - self.Threshold[
+                        len(self.Threshold) - j - 1]
+                    Delta.append(delta.getA() * (dPReLU(lastInput).getA()))
 
                 print(Delta)
 
@@ -224,7 +227,7 @@ class BasicDNN:
             signal = self.dataMat[i, :]
 
             for j in range(0, len(self.Weight) - 1):
-                signal = ReLU(signal * self.Weight[j] - self.Threshold[j])
+                signal = PReLU(signal * self.Weight[j] - self.Threshold[j])
 
             output = Sigmoid(signal * self.Weight[len(self.Weight) - 1] - self.Threshold[len(self.Threshold) - 1])
 
