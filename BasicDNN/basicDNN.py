@@ -202,7 +202,7 @@ class BasicDNN:
                         len(self.Threshold) - j - 1]
                     Delta.append(delta.getA() * (dPReLU(lastInput).getA()))
 
-                print(Delta)
+                # print(Delta)
 
                 # update Weight and Threshold
                 self.Weight[0] -= self.learnRate[0] * Signal[0].T * Delta[len(Delta) - 1]
