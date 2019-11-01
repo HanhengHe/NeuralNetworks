@@ -197,7 +197,7 @@ class BasicDNN:
 
                 # the rest
                 for j in range(self.Depth):
-                    delta = Delta[j] * self.Weight[len(self.Weight) - j - 1].T
+                    delta = Delta[j] * self.Weight[len(self.Weight) - j - 1]
                     lastInput = Signal[len(Signal) - j - 1] * self.Weight[len(self.Weight) - j - 1] - self.Threshold[
                         len(self.Threshold) - j - 1]
                     Delta.append(delta.getA() * (dPReLU(lastInput).getA()))
