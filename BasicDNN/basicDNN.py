@@ -164,11 +164,13 @@ class BasicDNN:
     #  train should be call after init
     #  since i wanna return a small size predictor
     def train(self):
-        for _ in range(self.maxIter):
+        for s in range(self.maxIter):
             # Gather loss
             # if small enough the quit the loop
+            print("step %s, error rate: " %s, end='')
             if self.calculateErrorRate() <= self.errorRate:
-                print(self.Weight)
+                for w in self.Weight:
+                    print(w)
                 print()
                 print(self.Threshold)
                 break
@@ -204,9 +206,16 @@ class BasicDNN:
                         len(self.Threshold) - j - 1]"""
                     Delta.append(delta.getA() * (dPReLU(Signal[len(Signal) - j - 1]).getA()))
 
-                print(Delta)
+                # print(Delta)
 
-                if np.sum(np.abs(Delta)) <= self.eta:
+                temp = 0
+                for it in Delta:
+                    x, y = np.shape(it)
+                    temp += np.sum(np.abs(it)) / (x * y)
+
+                temp = temp / len(Delta)
+
+                if temp <= self.eta:
                     print("Low gradient!")
                     break
 
@@ -232,7 +241,7 @@ class BasicDNN:
 
             signal = self.dataMat[i, :]
 
-            for j in range(0, len(self.Weight) - 1):
+            for j in range(len(self.Weight) - 1):
                 signal = PReLU(signal * self.Weight[j] - self.Threshold[j])
 
             output = Sigmoid(signal * self.Weight[len(self.Weight) - 1] - self.Threshold[len(self.Threshold) - 1])
