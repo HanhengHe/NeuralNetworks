@@ -86,7 +86,7 @@ class Predictor:
 
 class BasicDNN:
     def __init__(self, dataList, labelsList, Depth=1, learnRateIH=0.8, learnRateH=0.8, learnRateHO=0.8, errorRate=0.05,
-                 maxIter=20, alpha=1, HLSize=-1, fixParameter=-1):
+                 maxIter=20, alpha=1, HLSize=-1, fixParameter=-1, eta=10**(-5)):
         #  type check
         if not isinstance(dataList, list):
             raise NameError('DataList should be list')
@@ -99,6 +99,8 @@ class BasicDNN:
 
         if not isinstance(HLSize, int):
             raise NameError('NumHL should be int')
+
+        self.eta = eta
 
         self.dataMat = np.mat(dataList)  # dataSet
         self.numData, dataLen = np.shape(self.dataMat)  # record shape of dataSet
@@ -181,7 +183,7 @@ class BasicDNN:
                 Signal = [signal]
 
                 for j in range(0, len(self.Weight) - 1):
-                    signal = PReLU(signal * self.Weight[j] - self.Threshold[j])
+                    signal = PReLU(signal * self.Weight[j] - self.Threshold[j])  # signal => z
                     Signal.append(signal)
 
                 # ! DELTA IS REVERSED !
@@ -197,12 +199,16 @@ class BasicDNN:
 
                 # the rest
                 for j in range(self.Depth):
-                    delta = Delta[j] * self.Weight[len(self.Weight) - j - 1]
-                    lastInput = Signal[len(Signal) - j - 1] * self.Weight[len(self.Weight) - j - 1] - self.Threshold[
-                        len(self.Threshold) - j - 1]
-                    Delta.append(delta.getA() * (dPReLU(lastInput).getA()))
+                    delta = Delta[j] * self.Weight[len(self.Weight) - j - 1].T
+                    """lastInput = Signal[len(Signal) - j - 1] * self.Weight[len(self.Weight) - j - 1] - self.Threshold[
+                        len(self.Threshold) - j - 1]"""
+                    Delta.append(delta.getA() * (dPReLU(Signal[len(Signal) - j - 1]).getA()))
 
-                # print(Delta)
+                print(Delta)
+
+                if np.sum(np.abs(Delta)) <= self.eta:
+                    print("Low gradient!")
+                    break
 
                 # update Weight and Threshold
                 self.Weight[0] -= self.learnRate[0] * Signal[0].T * Delta[len(Delta) - 1]
