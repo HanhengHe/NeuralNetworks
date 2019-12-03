@@ -8,7 +8,6 @@ alpha = 0.3  # alpha for PReLU
 #  BEFORE CODE:
 #  this is a deep neural network
 #  default depth (not include input and output layer) is one
-#  and i finally realize that my input neurons have no threshold (but that's not a problem)
 
 # ***********************active function************************
 # Sigmoid is used for output
