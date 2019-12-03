@@ -10,27 +10,26 @@ alpha = 0.3  # alpha for PReLU
 #  default depth (not include input and output layer) is one
 
 # ***********************active function************************
-# Sigmoid is used for output
+def Softmax(X):
+    print(np.exp(X)/np.sum(np.exp(X)))
+    return np.exp(X)/np.sum(np.exp(X))
+
+
+# d(Loss)/dx
+# Loss = -ln(X)
+def dLoss(X):
+    print(1/X)
+    return 1 / X
+
+
+# Sigmod for rest
 def Sigmoid(X):
     return 1 / (1 + np.exp(-X))
 
 
-# ReLU for rest
-def PReLU(X):
-    _, n = np.shape(X)
-    for i in range(n):
-        X[0, i] = X[0, i] if X[0, i] >= 0 else X[0, i] * alpha
-        # X[0, i] = X[0, i] if X[0, i] <= 1 else 1.01
-    return X
-
-
 # d(ReLU)/dx
-def dPReLU(X):
-    _, n = np.shape(X)
-    for i in range(n):
-        # X[0, i] = 1 if X[0, i] >= 0 and X[0, i] != 1.01 else 0
-        X[0, i] = 1 if X[0, i] >= 0 else alpha
-    return X
+def dSigmoid(X):
+
 
 
 # **************************************************************
@@ -60,14 +59,12 @@ class Predictor:
         signal = X
 
         for i in range(0, len(self.Weight) - 1):
-            signal = PReLU(signal * self.Weight[i] - self.Threshold[i])
+            signal = Sigmoid(signal * self.Weight[i] - self.Threshold[i])
 
-        output = Sigmoid(signal * self.Weight[len(self.Weight) - 1] - self.Threshold[len(self.Threshold) - 1])
+        output = Softmax(signal * self.Weight[len(self.Weight) - 1] - self.Threshold[len(self.Threshold) - 1])
 
-        temp = (np.abs(output - np.mat(np.ones((1, self.outputSize))))).tolist()[0]
-
-        print(self.labelsName[temp.index(min(temp))])
-        return self.labelsName[temp.index(min(temp))]
+        print(self.labelsName[np.argmax(output)])
+        return self.labelsName[np.argmax(output)]
 
 
 # **************************************************************
@@ -85,7 +82,7 @@ class Predictor:
 
 class BasicDNN:
     def __init__(self, dataList, labelsList, Depth=1, learnRateIH=0.8, learnRateH=0.8, learnRateHO=0.8, errorRate=0.05,
-                 maxIter=20, alpha=1, HLSize=-1, fixParameter=-1, eta=10**(-5)):
+                 maxIter=20, alpha=1, HLSize=-1, fixParameter=-1, eta=10 ** (-5)):
         #  type check
         if not isinstance(dataList, list):
             raise NameError('DataList should be list')
@@ -166,7 +163,7 @@ class BasicDNN:
         for s in range(self.maxIter):
             # Gather loss
             # if small enough the quit the loop
-            print("step %s, error rate: " %s, end='')
+            print("step %s, error rate: " % s, end='')
             if self.calculateErrorRate() <= self.errorRate:
                 for w in self.Weight:
                     print(w)
@@ -184,7 +181,7 @@ class BasicDNN:
                 Signal = [signal]
 
                 for j in range(0, len(self.Weight) - 1):
-                    signal = PReLU(signal * self.Weight[j] - self.Threshold[j])  # signal => z
+                    signal = Sigmoid(signal * self.Weight[j] - self.Threshold[j])  # signal => z
                     Signal.append(signal)
 
                 # ! DELTA IS REVERSED !
@@ -193,17 +190,17 @@ class BasicDNN:
                 # Gather delta for every layer
 
                 # the output-hidden layer (since active function is different)
-                lastPotential = Sigmoid(
+                lastPotential = Softmax(
                     signal * self.Weight[len(self.Weight) - 1] - self.Threshold[len(self.Threshold) - 1])
                 delta = lastPotential - currentLabel
-                Delta.append(delta.getA() * lastPotential.getA() * (1 - lastPotential).getA())
+                Delta.append(delta.getA() * dLoss(lastPotential).getA())
 
                 # the rest
                 for j in range(self.Depth):
                     delta = Delta[j] * self.Weight[len(self.Weight) - j - 1].T
                     """lastInput = Signal[len(Signal) - j - 1] * self.Weight[len(self.Weight) - j - 1] - self.Threshold[
                         len(self.Threshold) - j - 1]"""
-                    Delta.append(delta.getA() * (dPReLU(Signal[len(Signal) - j - 1]).getA()))
+                    Delta.append(delta.getA() * (dSigmoid(Signal[len(Signal) - j - 1]).getA()))
 
                 # print(Delta)
 
@@ -241,12 +238,11 @@ class BasicDNN:
             signal = self.dataMat[i, :]
 
             for j in range(len(self.Weight) - 1):
-                signal = PReLU(signal * self.Weight[j] - self.Threshold[j])
+                signal = Sigmoid(signal * self.Weight[j] - self.Threshold[j])
 
-            output = Sigmoid(signal * self.Weight[len(self.Weight) - 1] - self.Threshold[len(self.Threshold) - 1])
+            output = Softmax(signal * self.Weight[len(self.Weight) - 1] - self.Threshold[len(self.Threshold) - 1])
 
-            temp = (np.abs(output - np.mat(np.ones((1, self.outputSize))))).tolist()[0]
-            if self.transferLabelsMat[temp.index(min(temp))].tolist()[0] != self.labelsMat[i].tolist()[0]:
+            if np.argmax(output) != np.argmax(self.labelsMat[i]):
                 errorCounter += 1
 
         print(errorCounter / self.numData)
