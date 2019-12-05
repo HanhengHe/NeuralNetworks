@@ -29,7 +29,7 @@ def Sigmoid(X):
 
 # d(ReLU)/dx
 def dSigmoid(X):
-    pass
+    return Sigmoid(X)(1-Sigmoid(X))
 
 
 # **************************************************************
