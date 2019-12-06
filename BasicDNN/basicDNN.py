@@ -154,12 +154,20 @@ class BasicDNN:
     #  train should be call after init
     #  since i wanna return a small size predictor
     def train(self):
+        # lastErrorRate = 1
         for s in range(self.maxIter):
             # Gather loss
             # if small enough the quit the loop
             print("step %s, error rate: " % s, end='')
-            if self.calculateErrorRate() <= self.errorRate:
+            errorRate = self.calculateErrorRate()
+
+            if errorRate <= self.errorRate:
                 break
+
+            """if abs(lastErrorRate-errorRate) <= 0.001:
+                print("error rate no change!(maybe local minimization)")
+                break
+            lastErrorRate = errorRate"""
 
             # train with every data set
             for i in range(self.numData):
@@ -197,7 +205,7 @@ class BasicDNN:
 
                 if temp <= self.eta:
                     print("Low gradient!")
-                    return Predictor(self.labelNames, self.outputSize, self.Weight, self.Threshold)
+                    break
 
                 # update Weight and Threshold
                 for j in range(0, len(self.Weight) - 1):
@@ -220,17 +228,17 @@ class BasicDNN:
 
             output = Softmax(signal * self.Weight[len(self.Weight) - 1] - self.Threshold[len(self.Threshold) - 1])
 
-            print(output, end=' ')
-            print(self.labelsMat[i])
+            # print(output, end=' ')
+            # print(self.labelsMat[i])
 
             if np.argmax(output) != np.argmax(self.labelsMat[i]):
                 errorCounter += 1
 
         print(errorCounter / self.numData)
 
-        print(self.Weight)
-        print()
-        print(self.Threshold)
-        print()
+        # print(self.Weight)
+        # print()
+        # print(self.Threshold)
+        # print()
 
         return errorCounter / self.numData

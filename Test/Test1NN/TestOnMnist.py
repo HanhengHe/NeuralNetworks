@@ -6,8 +6,8 @@ from BasicNN.basicNN import BasicNN
 #                   size parameter                 #
 ####################################################
 # svc get double size
-trainSize = 20
-testSize = 10
+trainSize = 200
+testSize = 100
 
 ####################################################
 #                    parameter                     #
@@ -105,7 +105,7 @@ for line in testFile.readlines():
 
 testFile.close()
 
-basicNN = BasicDNN(trainList, trainLabels, errorRate=0.05, maxIter=100, learnRate=0.5).train()
+basicNN = BasicDNN(trainList, trainLabels, errorRate=0.05, Depth=2, maxIter=500, learnRate=0.5).train()
 
 ############################################################################
 #                                 test                                     #
