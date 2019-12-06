@@ -11,15 +11,8 @@ alpha = 0.3  # alpha for PReLU
 
 # ***********************active function************************
 def Softmax(X):
-    print(np.exp(X)/np.sum(np.exp(X)))
+    # print(np.exp(X)/np.sum(np.exp(X)))
     return np.exp(X)/np.sum(np.exp(X))
-
-
-# d(Loss)/dx
-# Loss = -ln(X)
-def dLoss(X):
-    print(1/X)
-    return 1 / X
 
 
 # Sigmod for rest
@@ -27,9 +20,10 @@ def Sigmoid(X):
     return 1 / (1 + np.exp(-X))
 
 
-# d(ReLU)/dx
+# d(Sigmoid)/dx
 def dSigmoid(X):
-    return Sigmoid(X)(1-Sigmoid(X))
+    array = Sigmoid(X).getA()
+    return array*(1-array)
 
 
 # **************************************************************
@@ -81,8 +75,8 @@ class Predictor:
 # HLSize means number of hidden layers. -1 allow computer to make a decision itself
 
 class BasicDNN:
-    def __init__(self, dataList, labelsList, Depth=1, learnRateIH=0.8, learnRateH=0.8, learnRateHO=0.8, errorRate=0.05,
-                 maxIter=20, alpha=1, HLSize=-1, fixParameter=-1, eta=10 ** (-5)):
+    def __init__(self, dataList, labelsList, Depth=1, learnRate=0.8, errorRate=0.05,
+                 maxIter=20, Alpha=1, HLSize=-1, fixParameter=-1, eta=10 ** (-5)):
         #  type check
         if not isinstance(dataList, list):
             raise NameError('DataList should be list')
@@ -118,7 +112,7 @@ class BasicDNN:
         print(self.labelNames)
 
         # record parameter
-        self.learnRate = (learnRateIH, learnRateH, learnRateHO)
+        self.learnRate = learnRate
         self.errorRate = errorRate
         self.maxIter = maxIter
 
@@ -127,7 +121,7 @@ class BasicDNN:
 
         # base on an exist formula
         # number of neurons for each hidden layer
-        self.HLSize = int((self.inputSize + self.outputSize) ** 0.5 + alpha) if HLSize == -1 else HLSize
+        self.HLSize = int((self.inputSize + self.outputSize) ** 0.5 + Alpha) if HLSize == -1 else HLSize
 
         # depth of neural network (not include input and output layer)
         self.Depth = Depth
@@ -165,22 +159,16 @@ class BasicDNN:
             # if small enough the quit the loop
             print("step %s, error rate: " % s, end='')
             if self.calculateErrorRate() <= self.errorRate:
-                for w in self.Weight:
-                    print(w)
-                print()
-                print(self.Threshold)
                 break
 
             # train with every data set
             for i in range(self.numData):
 
-                currentLabel = self.labelsMat[i, :]
-
                 # Gather output of every neurons
                 signal = self.dataMat[i, :]
                 Signal = [signal]
 
-                for j in range(0, len(self.Weight) - 1):
+                for j in range(0, len(self.Weight)):
                     signal = Sigmoid(signal * self.Weight[j] - self.Threshold[j])  # signal => z
                     Signal.append(signal)
 
@@ -190,17 +178,13 @@ class BasicDNN:
                 # Gather delta for every layer
 
                 # the output-hidden layer (since active function is different)
-                lastPotential = Softmax(
-                    signal * self.Weight[len(self.Weight) - 1] - self.Threshold[len(self.Threshold) - 1])
-                delta = lastPotential - currentLabel
-                Delta.append(delta.getA() * dLoss(lastPotential).getA())
+                lastPotential = Softmax(signal)
+                Delta.append(lastPotential-self.labelsMat[i])
 
                 # the rest
                 for j in range(self.Depth):
                     delta = Delta[j] * self.Weight[len(self.Weight) - j - 1].T
-                    """lastInput = Signal[len(Signal) - j - 1] * self.Weight[len(self.Weight) - j - 1] - self.Threshold[
-                        len(self.Threshold) - j - 1]"""
-                    Delta.append(delta.getA() * (dSigmoid(Signal[len(Signal) - j - 1]).getA()))
+                    Delta.append(delta.getA() * (dSigmoid(Signal[len(Signal) - j - 2])))
 
                 # print(Delta)
 
@@ -213,24 +197,26 @@ class BasicDNN:
 
                 if temp <= self.eta:
                     print("Low gradient!")
-                    break
+                    return Predictor(self.labelNames, self.outputSize, self.Weight, self.Threshold)
 
                 # update Weight and Threshold
-                self.Weight[0] -= self.learnRate[0] * Signal[0].T * Delta[len(Delta) - 1]
-                self.Threshold[0] += self.learnRate[0] * Delta[len(Delta) - 1]
+                self.Weight[0] -= self.learnRate * np.mat(Signal[0]).T * np.mat(
+                    dSigmoid(Signal[1]) * Delta[len(Delta) - 1])
+                self.Threshold[0] += self.learnRate * dSigmoid(Signal[1]) * Delta[len(Delta) - 1]
 
-                self.Weight[len(self.Weight) - 1] -= self.learnRate[2] * Signal[len(Signal) - 1].T * Delta[0]
-                self.Threshold[len(self.Weight) - 1] += self.learnRate[2] * Delta[0]
+                self.Weight[0] -= self.learnRate * np.mat(Signal[len(Signal) - 2]).T * np.mat(
+                    dSigmoid(Signal[len(Signal) - 1]) * Delta[0])
+                self.Threshold[0] += self.learnRate * dSigmoid(Signal[len(Signal) - 1]) * Delta[0]
 
                 for j in range(1, len(self.Weight) - 1):
-                    self.Weight[j] -= self.learnRate[1] * Signal[j].T * Delta[len(self.Weight) - j - 1]
-                    self.Threshold[j] += self.learnRate[1] * Delta[len(self.Weight) - j - 1]
+                    self.Weight[0] -= self.learnRate * np.mat(Signal[j-1]).T * np.mat(
+                        dSigmoid(Signal[j]) * Delta[len(self.Weight) - j - 1])
+                    self.Threshold[0] += self.learnRate * dSigmoid(Signal[j]) * Delta[len(self.Weight) - j - 1]
 
         return Predictor(self.labelNames, self.outputSize, self.Weight, self.Threshold)
 
     def calculateErrorRate(self):
         #  calculate the error rate
-
         errorCounter = 0
 
         for i in range(self.numData):
@@ -242,9 +228,17 @@ class BasicDNN:
 
             output = Softmax(signal * self.Weight[len(self.Weight) - 1] - self.Threshold[len(self.Threshold) - 1])
 
+            print(output, end=' ')
+            print(self.labelsMat[i])
+
             if np.argmax(output) != np.argmax(self.labelsMat[i]):
                 errorCounter += 1
 
         print(errorCounter / self.numData)
+
+        print(self.Weight)
+        print()
+        print(self.Threshold)
+        print()
 
         return errorCounter / self.numData

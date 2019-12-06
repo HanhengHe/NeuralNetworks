@@ -15,7 +15,7 @@ for line in trainSet.readlines():
     trainList.append([float(data[1]) / sumUp, float(data[2]) / sumUp, float(data[3]) / sumUp, float(data[4]) / sumUp])
     labelsList.append(data[5].replace('\n', ''))
 
-basicNN = BasicDNN(trainList, labelsList, Depth=2, errorRate=0.5, maxIter=50, learnRateIH=0.5, learnRateH=0.5,
+basicNN = BasicDNN(trainList, labelsList, Depth=2, errorRate=0.5, maxIter=100, learnRateIH=0.5, learnRateH=0.5,
                    learnRateHO=0.5).train()
 
 testSet = open(filePath+"\\iris_test")
