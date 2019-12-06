@@ -200,15 +200,7 @@ class BasicDNN:
                     return Predictor(self.labelNames, self.outputSize, self.Weight, self.Threshold)
 
                 # update Weight and Threshold
-                self.Weight[0] -= self.learnRate * np.mat(Signal[0]).T * np.mat(
-                    dSigmoid(Signal[1]) * Delta[len(Delta) - 1])
-                self.Threshold[0] += self.learnRate * dSigmoid(Signal[1]) * Delta[len(Delta) - 1]
-
-                self.Weight[0] -= self.learnRate * np.mat(Signal[len(Signal) - 2]).T * np.mat(
-                    dSigmoid(Signal[len(Signal) - 1]) * Delta[0])
-                self.Threshold[0] += self.learnRate * dSigmoid(Signal[len(Signal) - 1]) * Delta[0]
-
-                for j in range(1, len(self.Weight) - 1):
+                for j in range(0, len(self.Weight) - 1):
                     self.Weight[0] -= self.learnRate * np.mat(Signal[j-1]).T * np.mat(
                         dSigmoid(Signal[j]) * Delta[len(self.Weight) - j - 1])
                     self.Threshold[0] += self.learnRate * dSigmoid(Signal[j]) * Delta[len(self.Weight) - j - 1]
