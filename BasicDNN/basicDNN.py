@@ -57,7 +57,6 @@ class Predictor:
 
         output = Softmax(signal * self.Weight[len(self.Weight) - 1] - self.Threshold[len(self.Threshold) - 1])
 
-        print(self.labelsName[np.argmax(output)])
         return self.labelsName[np.argmax(output)]
 
 
@@ -75,7 +74,7 @@ class Predictor:
 # HLSize means number of hidden layers. -1 allow computer to make a decision itself
 
 class BasicDNN:
-    def __init__(self, dataList, labelsList, Depth=1, learnRate=0.8, errorRate=0.05,
+    def __init__(self, dataList, labelsList, Depth=1, learnRate=0.01, errorRate=0.05,
                  maxIter=20, Alpha=1, HLSize=-1, fixParameter=-1, eta=10 ** (-5)):
         #  type check
         if not isinstance(dataList, list):
@@ -131,7 +130,7 @@ class BasicDNN:
         if fixParameter == -1:
             temp = 0
             for i in range(len(dataList)):
-                temp += np.sum(self.dataMat[i, :])
+                temp += np.sum(np.abs(self.dataMat[i, :]))
 
             temp = temp / len(dataList)
             fixParameter = 1 / temp

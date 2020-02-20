@@ -1,20 +1,23 @@
 # -*- coding: UTF-8 -*-
 from BasicDNN.basicDNN import BasicDNN
 from BasicNN.basicNN import BasicNN
+import numpy as np
+from PIL import Image
+import cv2
 
 ####################################################
 #                   size parameter                 #
 ####################################################
 # svc get double size
-trainSize = 200
-testSize = 100
+trainSize = 1200
+testSize = 200
 
 ####################################################
 #                    parameter                     #
 ####################################################
 
-trainFilePath = 'D:\\WINTER\\Pycharm_project\\data\\Mnist\\train'
-testFilePath = 'D:\\WINTER\\Pycharm_project\\data\\Mnist\\test'
+trainFilePath = 'D:\\workspace\\PycharmProjects\\data\\Mnist\\train'
+testFilePath = 'D:\\workspace\\PycharmProjects\\data\\Mnist\\test'
 
 ####################################################
 trainList = []
@@ -33,7 +36,7 @@ testCounter = [[1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0], [7, 0], [8, 0], [
 
 trainFile = open(trainFilePath)
 
-#   assistant data
+#   assistant data 28*28
 for line in trainFile.readlines():
     #  修改格式
     dataSet = line.split(')')[0]
@@ -50,10 +53,20 @@ for line in trainFile.readlines():
     dataSets = dataSet.split(',')
     dataSets[0] = dataSets[0].replace('(', '')
 
+    gray = np.reshape(np.array(dataSets), (28, 28)).astype(np.uint8)
+    poolingGary = np.zeros((7, 7))
+    for i in range(0, 7):
+        for j in range(0, 7):
+            poolingGary[i, j] = np.max(gray[i*4:i*4+4, j*4:j*4+4])
+    # im = Image.fromarray(poolingGary)  # numpy 转 image类
+    # im.show()
+    dataSets = np.reshape(poolingGary, (1, 49)).tolist()[0]
+
     #  data set调整为float类型，label调整为int类型
     tempIn = []
     for i in range(len(dataSets)):
         t = int(dataSets[i]) / 255  # 归一化
+
         # 四舍五入
         if t > 0.5:
             tempIn.append(1)
@@ -87,6 +100,15 @@ for line in testFile.readlines():
     dataSets = dataSet.split(',')
     dataSets[0] = dataSets[0].replace('(', '')
 
+    gray = np.reshape(np.array(dataSets), (28, 28)).astype(np.uint8)
+    poolingGary = np.zeros((7, 7))
+    for i in range(0, 7):
+        for j in range(0, 7):
+            poolingGary[i, j] = np.max(gray[i * 4:i * 4 + 4, j * 4:j * 4 + 4])
+    # im = Image.fromarray(poolingGary)  # numpy 转 image类
+    # im.show()
+    dataSets = np.reshape(poolingGary, (1, 49)).tolist()[0]
+
     #  data set调整为float类型，label调整为int类型
     tempIn = []
     for i in range(len(dataSets)):
@@ -105,7 +127,8 @@ for line in testFile.readlines():
 
 testFile.close()
 
-basicNN = BasicDNN(trainList, trainLabels, errorRate=0.05, Depth=2, maxIter=500, learnRate=0.5).train()
+basicNN = BasicDNN(trainList, trainLabels, errorRate=0.05, Depth=1, maxIter=50).train()
+# basicNN = BasicNN(trainList, trainLabels, errorRate=0.05, HLSize=100, maxIter=80).train()
 
 ############################################################################
 #                                 test                                     #
